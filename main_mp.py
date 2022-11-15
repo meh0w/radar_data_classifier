@@ -9,6 +9,7 @@ import tensorflow as tf
 from datetime import datetime
 from contextlib import redirect_stdout
 import seaborn as sns
+from sklearn.metrics import classification_report
 
 PATH = r"C:\Users\Michal\PycharmProjects\Inz\data"
 TITLES = [
@@ -25,16 +26,20 @@ XY_LABELS = [
     ("Value", "Wartość"),
     ("Epoch number", "Numer epoki")
 ]
-sns.set()
 
 
-def split_data(images, labels):
+def split_data(images, labels, mode='train_test', parts=5):
     out = {}
     data_ = list(zip(images, labels))
     np.random.shuffle(data_)
 
-    out["train"] = tuple(map(lambda x: np.array(x), zip(*data_[:-len(data_)//3])))
-    out["test"] = tuple(map(lambda x: np.array(x), zip(*data_[-len(data_)//3:])))
+    if mode == 'train_test':
+        out["train"] = tuple(map(lambda x: np.array(x), zip(*data_[:-len(data_)//3])))
+        out["test"] = tuple(map(lambda x: np.array(x), zip(*data_[-len(data_)//3:])))
+
+    elif mode == 'equal':
+        for i in range(parts):
+            out[i] = list(map(lambda x: np.array(x), zip(*data_[i*17485//parts:(i+1)*17485//parts])))
 
     return out
 
@@ -51,8 +56,9 @@ def plot_on_axis(ax, data, metric, labels, title, xy_labels):
 
     return ax
 
-def save_results(history, model, data_set):
 
+def save_results(history, model, data_set, additional_info=''):
+    sns.set()
     for i, language in enumerate(['ENG', 'PL']):
         # both
         fig, ax = plt.subplots(2, 1, sharex=True)
@@ -77,26 +83,44 @@ def save_results(history, model, data_set):
         with open(f'./results/{language}/{datetime.now().strftime("%d_%m_%Y__%H_%M_%S")}.txt', 'w') as output_file:
             with redirect_stdout(output_file):
                 model.summary()
+
+            pred = model.predict(data_set["test"][0], batch_size=32, verbose=1)
+            predicted = np.argmax(pred, axis=1)
+            report = classification_report(data_set["test"][1], predicted)
             output_file.write(
-                f'\n Test set results: {model.evaluate(data_set["test"][0], data_set["test"][1], return_dict=True)}')
+                f'\n Test set results: {model.evaluate(data_set["test"][0], data_set["test"][1], return_dict=True)} \n'
+                f'{report} \n'
+                f'{additional_info}')
 
 
 def read_data(filename):
 
-    images = []
-    labels = []
     categories = os.listdir(r"C:\Users\Michal\PycharmProjects\Inz\data")
     label = [i for i, category in enumerate(categories) if category in filename]
     df = pd.read_csv(filename, sep=',', header=None)
     image = df.to_numpy()
     image = image.reshape((image.shape[0], image.shape[1], 1))/200
-    images.append(image)
-    labels.append(label)
+    images = [image]
+    labels = [label]
+    name = ["\\".join(filename.split("\\")[-3:-1])]
 
-    return np.array(images), np.array(labels)
+    return np.array(images), np.array(labels), np.array(name)
 
 
-def main():
+def stack_in_time(images, names):
+    stacked_images = np.zeros((images.shape[0], images.shape[1], images.shape[2], 3))
+    for i in range(len(names)):
+        if np.all(names[i - 1:i + 2] == names[i]) and i - 1 >= 0 and i + 1 < names.shape[0]:
+            stacked_images[i] = np.concatenate(images[i - 1:i + 2], axis=2)
+        elif i - 1 < 0 or names[i - 1] != names[i]:
+            stacked_images[i] = np.concatenate(images[i:i + 3], axis=2)
+        elif i + 1 == names.shape[0] or names[i + 1] != names[i]:
+            stacked_images[i] = np.concatenate(images[i - 2:i + 1], axis=2)
+
+    return stacked_images
+
+
+def read_files(path):
     start = time.time()
 
     files = []
@@ -106,12 +130,24 @@ def main():
 
     with Pool(processes=cpu_count()) as pool:
 
-        images_df, labels_df = zip(*pool.map(read_data, files))
+        images_df, labels_df, names_df = zip(*pool.map(read_data, files))
         images_df = np.concatenate(images_df)
         labels_df = np.concatenate(labels_df)
+        names_df = np.concatenate(names_df)
 
     end = time.time()
+
+    return images_df, labels_df, names_df
+
+
+def train_valid_test():
+    """
+    Performs learning process with data split into train, test and validation set
+
+    """
+    images_df, labels_df, names_df = read_files(PATH)
     print(f"Images read {len(images_df)}")
+    images_df = stack_in_time(images_df, names_df)
     data_set = split_data(images_df, labels_df)
     print(f'Images after split: train = {len(data_set["train"][0])}, test = {len(data_set["test"][0])}')
     model = get_model(images_df)
@@ -124,6 +160,40 @@ def main():
 
     plt.show()
     model.summary()
+
+
+def cross_validation(k):
+    """
+    Performs learning process with k-fold validation
+    """
+    images_df, labels_df, names_df = read_files(PATH)
+    print(f"Images read {len(images_df)}")
+    images_df = stack_in_time(images_df, names_df)
+    folded_data_set = split_data(images_df, labels_df, mode='equal', parts=k)
+
+    for i in range(k):
+        data_set = {"train": (np.concatenate([folded_data_set[part][0] for part in range(k) if part != i]),
+                              np.concatenate([folded_data_set[part][1] for part in range(k) if part != i])),
+                    "test": (folded_data_set[i][0],
+                             folded_data_set[i][1])}
+        # data_set["train"][0] = np.concatenate([folded_data_set[part][0] for part in range(k) if part != i])
+        # data_set["train"][1] = np.concatenate([folded_data_set[part][1] for part in range(k) if part != i])
+        # data_set["test"][0] = folded_data_set[i][0]
+        # data_set["test"][1] = folded_data_set[i][1]
+        model = get_model(images_df)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+
+        # start training and display summary
+        history = model.fit(data_set["train"][0], data_set["train"][1], batch_size=10, epochs=100, validation_split=0.3)
+        save_results(history, model, data_set, additional_info=f'{k}-fold cross_validation: test set number = {i}')
+
+        plt.show()
+        model.summary()
+
+
+def main():
+    cross_validation(5)
 
 
 if __name__ == '__main__':

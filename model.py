@@ -10,7 +10,7 @@ def get_model(x):
     model.add(MaxPooling2D((2, 2)))
     model.add(Dropout(.4))
 
-    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(x.shape[1:])))
+    model.add(Conv2D(32, (3, 3), activation='relu'))
     model.add(MaxPooling2D((2, 2)))
     model.add(Dropout(.4))
 

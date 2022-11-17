@@ -6,11 +6,15 @@ def get_model(x):
 
     model = Sequential()
 
-    model.add(Conv2D(16, (3, 3), activation='relu', input_shape=(x.shape[1:])))
+    model.add(Conv2D(16, (3, 3), activation='relu', input_shape=(x.shape[1:]), padding='same'))
     model.add(MaxPooling2D((2, 2)))
     model.add(Dropout(.4))
 
-    model.add(Conv2D(32, (3, 3), activation='relu'))
+    model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Dropout(.4))
+
+    model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
     model.add(MaxPooling2D((2, 2)))
     model.add(Dropout(.4))
 

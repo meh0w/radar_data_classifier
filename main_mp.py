@@ -107,17 +107,17 @@ def read_data(filename):
     return np.array(images), np.array(labels), np.array(name)
 
 
-def stack_in_time(images, names):
-    stacked_images = np.zeros((images.shape[0], images.shape[1], images.shape[2], 3))
+def stack_in_time(images, names, labels):
+    stacked_images = []
+    stacked_names = []
+    stacked_labels = []
     for i in range(len(names)):
-        if np.all(names[i - 1:i + 2] == names[i]) and i - 1 >= 0 and i + 1 < names.shape[0]:
-            stacked_images[i] = np.concatenate(images[i - 1:i + 2], axis=2)
-        elif i - 1 < 0 or names[i - 1] != names[i]:
-            stacked_images[i] = np.concatenate(images[i:i + 3], axis=2)
-        elif i + 1 == names.shape[0] or names[i + 1] != names[i]:
-            stacked_images[i] = np.concatenate(images[i - 2:i + 1], axis=2)
+        if i - 2 >= 0 and np.all(names[i - 2:i + 1] == names[i]):
+            stacked_images.append(np.concatenate(images[i - 2:i + 1], axis=2))
+            stacked_names.append(names[i])
+            stacked_labels.append(labels[i])
 
-    return stacked_images
+    return np.array(stacked_images), np.array(stacked_names), np.array(stacked_labels)
 
 
 def read_files(path):
@@ -147,7 +147,7 @@ def train_valid_test():
     """
     images_df, labels_df, names_df = read_files(PATH)
     print(f"Images read {len(images_df)}")
-    images_df = stack_in_time(images_df, names_df)
+    images_df, names_df, labels_df = stack_in_time(images_df, names_df, labels_df)
     data_set = split_data(images_df, labels_df)
     print(f'Images after split: train = {len(data_set["train"][0])}, test = {len(data_set["test"][0])}')
     model = get_model(images_df)
@@ -168,7 +168,7 @@ def cross_validation(k):
     """
     images_df, labels_df, names_df = read_files(PATH)
     print(f"Images read {len(images_df)}")
-    images_df = stack_in_time(images_df, names_df)
+    images_df, names_df, labels_df = stack_in_time(images_df, names_df, labels_df)
     folded_data_set = split_data(images_df, labels_df, mode='equal', parts=k)
 
     for i in range(k):
@@ -193,7 +193,8 @@ def cross_validation(k):
 
 
 def main():
-    cross_validation(5)
+    # cross_validation(5)
+    train_valid_test()
 
 
 if __name__ == '__main__':

@@ -16,8 +16,6 @@ def get_model(x):
 
     model.add(Flatten())
     model.add(Dense(64, activation='relu'))
-    model.add(Dense(128, activation='relu'))
-    model.add(Dense(256, activation='relu'))
     model.add(Dense(512, activation='relu'))
     model.add(Dense(256, activation='relu'))
     model.add(Dense(128, activation='relu'))

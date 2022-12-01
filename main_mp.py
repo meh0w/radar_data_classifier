@@ -93,13 +93,18 @@ def save_results(history, model, data_set, additional_info=''):
                 f'{additional_info}')
 
 
+def normalize(image):
+    return (image + 140)/70
+
+
 def read_data(filename):
 
     categories = os.listdir(r"C:\Users\Michal\PycharmProjects\Inz\data")
     label = [i for i, category in enumerate(categories) if category in filename]
     df = pd.read_csv(filename, sep=',', header=None)
     image = df.to_numpy()
-    image = image.reshape((image.shape[0], image.shape[1], 1))/200
+    image = image.reshape((image.shape[0], image.shape[1], 1))
+    image = normalize(image)
     images = [image]
     labels = [label]
     name = ["\\".join(filename.split("\\")[-3:-1])]
@@ -155,7 +160,7 @@ def train_valid_test():
     model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
     # start training and display summary
-    history = model.fit(data_set["train"][0], data_set["train"][1], batch_size=10, epochs=100, validation_split=0.3)
+    history = model.fit(data_set["train"][0], data_set["train"][1], batch_size=28, epochs=200, validation_split=0.3)
     save_results(history, model, data_set)
 
     plt.show()

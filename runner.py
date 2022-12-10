@@ -1,19 +1,76 @@
 from radar_classifier import Classifier
+import argparse
+import os
+import numpy as np
 
 
-def run():
-    radar = Classifier(data_path=r"C:\Users\Michal\PycharmProjects\Inz\data",
-                       results_path=r"C:\Users\Michal\PycharmProjects\Inz\results\classy")
+def run(config):
+    """
+    Handles communication between user and classifier
+    :param config: configuration of a run
+    """
+    radar = Classifier(data_path=config['data_path'],
+                       results_path=config['results_path'])
 
-    radar.read_files()
-    radar.stack_in_time()
-    radar.get_model()
-    # radar.load_weights(r'C:\Users\Michal\PycharmProjects\Inz\results\classy\weights_02_12_2022__20_34_21.h5')
-    radar.train_valid_test()
-    result = radar.predict([r'C:\Users\Michal\PycharmProjects\Inz\data\Cars\13-13\001.csv',
-                            r'C:\Users\Michal\PycharmProjects\Inz\data\Cars\13-13\002.csv',
-                            r'C:\Users\Michal\PycharmProjects\Inz\data\Cars\13-13\003.csv'])
-    print(result)
+    names = {0: 'Car', 1: 'Drone', 2: 'Human'}
+    required_files = 3
+    if config['data_path'] is not None and os.path.isdir(config['data_path']):
+        print("Reading data...")
+        radar.read_files()
+        if config['input_concat']:
+            print("Concatenating data...")
+            radar.stack_in_time()
+        else:
+            required_files = 1
+
+    radar.get_model((11, 61, required_files))
+
+    if config['weights'] is not None:
+        radar.load_weights(config['weights'])
+    if config['train'] == 'tvts':
+        print(f"Beginning Train Valid Test evaluation")
+        radar.train_valid_test()
+        print(f"Train Valid Test evaluation ended")
+    elif config['train'] == 'k-fold':
+        print(f"Beginning {config['iterations']}-fold validation")
+        radar.cross_validation(config['iterations'])
+        print(f"{config['iterations']}-fold validation ended")
+
+    end = False
+
+    while not end:
+        print("Enter path to a data you would like to classify or 'quit' to exit: ")
+        paths = []
+        i = 0
+        while i < required_files:
+            path = input()
+            if path == 'quit':
+                end = True
+                break
+            if os.path.isfile(path) and path[-4:] == '.csv':
+                paths.append(path)
+                i += 1
+                print(f'Provided {i}/{required_files} files')
+
+            else:
+                print("Wrong path")
+        if not end:
+            print(f'Provided {required_files}/{required_files} files')
+            result = radar.predict(paths)
+            print(result)
+            print(f'The provided data contains a {names[np.argmax(result)]}')
+        else:
+            print('Exiting...')
+
 
 if __name__ == '__main__':
-    run()
+    parser = argparse.ArgumentParser(prog='Radar data classifier',
+                                     description='')
+    parser.add_argument('-d', '--data_path', type=str, action='store', required=False)
+    parser.add_argument('-r', '--results_path', type=str, action='store', required=False)
+    parser.add_argument('-w', '--weights', type=str, required=False)
+    parser.add_argument('-c', '--input_concat', action='store_true', required=False)
+    parser.add_argument('-t', '--train', type=str, choices=['k-fold', 'tvts'], required=False)
+    parser.add_argument('-i', '--iterations', type=int, required=False)
+    args = parser.parse_args()
+    run(vars(args))

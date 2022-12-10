@@ -1,5 +1,5 @@
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
-from keras import Sequential, regularizers, optimizers
+from keras import Sequential, optimizers
 
 
 def get_model(x):
@@ -23,7 +23,7 @@ def get_model(x):
 
     model.add(Dense(3, activation='softmax'))
 
-    optimizer = optimizers.Adam(learning_rate=0.00001)
+    optimizer = optimizers.Adam(learning_rate=0.0001)
     model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
     return model

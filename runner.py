@@ -14,6 +14,7 @@ def run(config):
 
     names = {0: 'Car', 1: 'Drone', 2: 'Human'}
     required_files = 3
+    data_ready = False
     if config['data_path'] is not None and os.path.isdir(config['data_path']):
         print("Reading data...")
         radar.read_files()
@@ -22,19 +23,31 @@ def run(config):
             radar.stack_in_time()
         else:
             required_files = 1
+        print("Data is ready")
+        data_ready = True
+    elif config['data_path'] is not None:
+        print("Provided data path is incorrect, data not loaded")
 
     radar.get_model((11, 61, required_files))
 
-    if config['weights'] is not None:
+    if config['weights'] is not None and os.path.isfile(config['data_path']) and config['weights'][-3:] == '.h5':
         radar.load_weights(config['weights'])
-    if config['train'] == 'tvts':
-        print(f"Beginning Train Valid Test evaluation")
-        radar.train_valid_test()
-        print(f"Train Valid Test evaluation ended")
-    elif config['train'] == 'k-fold':
-        print(f"Beginning {config['iterations']}-fold validation")
-        radar.cross_validation(config['iterations'])
-        print(f"{config['iterations']}-fold validation ended")
+        print("Loaded custom weights")
+    elif config['weights'] is not None:
+        print("Provided weights path is incorrect, weights not loaded")
+
+    if data_ready:
+        if config['train'] == 'tvts':
+            print(f"Beginning Train Valid Test evaluation")
+            radar.train_valid_test()
+            print(f"Train Valid Test evaluation ended")
+        elif config['train'] == 'k-fold':
+            print(f"Beginning {config['iterations']}-fold validation")
+            radar.cross_validation(config['iterations'])
+            print(f"{config['iterations']}-fold validation ended")
+
+    elif config['train'] == 'tvts' or config['train'] == 'k-fold':
+        print("Skipping training due to missing data...")
 
     end = False
 

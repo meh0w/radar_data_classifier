@@ -126,7 +126,7 @@ class Classifier:
         self.history = self.model.fit(data_set["train"][0], data_set["train"][1], batch_size=28, epochs=100,
                                       validation_split=0.3)
 
-        if os.path.isdir(self.results_path):
+        if self.results_path is not None and os.path.isdir(self.results_path):
             self.save_results(data_set)
             with open(f'{self.results_path}/{datetime.now().strftime("report_%d_%m_%Y__%H_%M_%S")}.txt',
                       'w') as output_file:
@@ -159,7 +159,7 @@ class Classifier:
             # start training and display summary
             self.history = self.model.fit(data_set["train"][0], data_set["train"][1], batch_size=28, epochs=100,
                                           validation_split=0.3)
-            if os.path.isdir(self.results_path):
+            if self.results_path is not None and os.path.isdir(self.results_path):
                 self.save_results(data_set, additional_info=f'{k}-fold cross_validation: test set number = {i}')
 
             self.model.summary()

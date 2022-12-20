@@ -84,6 +84,6 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--weights', type=str, required=False)
     parser.add_argument('-c', '--input_concat', action='store_true', required=False)
     parser.add_argument('-t', '--train', type=str, choices=['k-fold', 'tvts'], required=False)
-    parser.add_argument('-i', '--iterations', type=int, required=False)
+    parser.add_argument('-i', '--iterations', type=int, required=False, default=5)
     args = parser.parse_args()
     run(vars(args))

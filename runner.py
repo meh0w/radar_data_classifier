@@ -79,11 +79,17 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Radar data classifier',
                                      description='')
-    parser.add_argument('-d', '--data_path', type=str, action='store', required=False)
-    parser.add_argument('-r', '--results_path', type=str, action='store', required=False)
-    parser.add_argument('-w', '--weights', type=str, required=False)
-    parser.add_argument('-c', '--input_concat', action='store_true', required=False)
-    parser.add_argument('-t', '--train', type=str, choices=['k-fold', 'tvts'], required=False)
-    parser.add_argument('-i', '--iterations', type=int, required=False, default=5)
+    parser.add_argument('-d', '--data_path', type=str, action='store', required=False,
+                        help='path to radar data folder')
+    parser.add_argument('-r', '--results_path', type=str, action='store', required=False,
+                        help='path to folder to store results in')
+    parser.add_argument('-w', '--weights', type=str, required=False,
+                        help='path to already trained weights in HDF5 format')
+    parser.add_argument('-c', '--input_concat', action='store_true', required=False,
+                        help='enables input data concatenation')
+    parser.add_argument('-t', '--train', type=str, choices=['k-fold', 'tvts'], required=False,
+                        help='specifies training and validation method')
+    parser.add_argument('-i', '--iterations', type=int, required=False, default=5,
+                        help='specifies number of iterations in k-fold training and validation method')
     args = parser.parse_args()
     run(vars(args))

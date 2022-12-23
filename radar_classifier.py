@@ -140,7 +140,6 @@ class Classifier:
                                   f'Mean {[np.mean(metric) for metric in self.macro_avg.values()]}\n')
 
         self.model.summary()
-        plt.show()
 
     def cross_validation(self, k):
         """
